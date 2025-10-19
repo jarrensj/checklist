@@ -13,17 +13,19 @@ class ChecklistItem {
     var id: UUID
     var title: String
     var isCompleted: Bool
+    var createdAt: Date
     
-    init(id: UUID = UUID(), title: String, isCompleted: Bool = false) {
+    init(id: UUID = UUID(), title: String, isCompleted: Bool = false, createdAt: Date = Date()) {
         self.id = id
         self.title = title
         self.isCompleted = isCompleted
+        self.createdAt = createdAt
     }
 }
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query private var items: [ChecklistItem]
+    @Query(sort: \ChecklistItem.createdAt, order: .reverse) private var items: [ChecklistItem]
     @State private var newItemText: String = ""
     @State private var editingItemId: UUID? = nil
     
