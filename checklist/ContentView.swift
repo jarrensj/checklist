@@ -16,6 +16,7 @@ struct ChecklistItem: Identifiable {
 struct ContentView: View {
     @State private var items: [ChecklistItem] = []
     @State private var newItemText: String = ""
+    @State private var editingItemId: UUID? = nil
     
     var body: some View {
         NavigationView {
@@ -50,9 +51,20 @@ struct ContentView: View {
                             }
                             .buttonStyle(BorderlessButtonStyle())
                             
-                            Text(item.title)
-                                .strikethrough(item.isCompleted)
-                                .foregroundColor(item.isCompleted ? .gray : .primary)
+                            if editingItemId == item.id {
+                                TextField("Edit item", text: $item.title)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .onSubmit {
+                                        editingItemId = nil
+                                    }
+                            } else {
+                                Text(item.title)
+                                    .strikethrough(item.isCompleted)
+                                    .foregroundColor(item.isCompleted ? .gray : .primary)
+                                    .onTapGesture {
+                                        editingItemId = item.id
+                                    }
+                            }
                         }
                     }
                     .onDelete(perform: deleteItems)
