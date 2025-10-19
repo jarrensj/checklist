@@ -98,17 +98,10 @@ struct ContentView: View {
     private func addItem() {
         guard !newItemText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
         
-        // Use timestamp to ensure unique sortOrder
-        let newSortOrder = Int(Date().timeIntervalSince1970 * 1000)
-        let newItem = ChecklistItem(title: newItemText, sortOrder: newSortOrder)
+        // New items get the highest sortOrder value to appear at top
+        let maxOrder = items.map { $0.sortOrder }.max() ?? -1
+        let newItem = ChecklistItem(title: newItemText, sortOrder: maxOrder + 1)
         modelContext.insert(newItem)
-        
-        do {
-            try modelContext.save()
-        } catch {
-            print("Error saving item: \(error)")
-        }
-        
         newItemText = ""
     }
     
@@ -125,18 +118,11 @@ struct ContentView: View {
         // Perform the move
         reorderedItems.move(fromOffsets: source, toOffset: destination)
         
-        // Update sortOrder for all items based on their new positions
-        // Since we sort in reverse, first item needs highest value
-        var timestamp = Int(Date().timeIntervalSince1970 * 1000)
-        for item in reorderedItems {
-            item.sortOrder = timestamp
-            timestamp -= 1  // Decrement so first item has highest value
-        }
-        
-        do {
-            try modelContext.save()
-        } catch {
-            print("Error saving reordered items: \(error)")
+        // Reassign sortOrder values in descending order
+        // First item gets highest value (appears at top with reverse sort)
+        let startValue = reorderedItems.count - 1
+        for (index, item) in reorderedItems.enumerated() {
+            item.sortOrder = startValue - index
         }
     }
 }
