@@ -27,7 +27,7 @@ class ChecklistItem {
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query(sort: \ChecklistItem.sortOrder) private var items: [ChecklistItem]
+    @Query(sort: \ChecklistItem.sortOrder, order: .reverse) private var items: [ChecklistItem]
     @State private var newItemText: String = ""
     @State private var editingItemId: UUID? = nil
     
@@ -125,11 +125,12 @@ struct ContentView: View {
         // Perform the move
         reorderedItems.move(fromOffsets: source, toOffset: destination)
         
-        // Update sortOrder for all items based on their new positions using timestamps
+        // Update sortOrder for all items based on their new positions
+        // Since we sort in reverse, first item needs highest value
         var timestamp = Int(Date().timeIntervalSince1970 * 1000)
         for item in reorderedItems {
             item.sortOrder = timestamp
-            timestamp += 1
+            timestamp -= 1  // Decrement so first item has highest value
         }
         
         do {
