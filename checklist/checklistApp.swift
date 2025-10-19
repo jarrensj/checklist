@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 @main
 struct checklistApp: App {
@@ -13,5 +14,6 @@ struct checklistApp: App {
         WindowGroup {
             ContentView()
         }
+        .modelContainer(for: ChecklistItem.self)
     }
 }
