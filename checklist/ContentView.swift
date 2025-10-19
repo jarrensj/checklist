@@ -30,6 +30,7 @@ struct ContentView: View {
     @Query(sort: \ChecklistItem.sortOrder, order: .reverse) private var items: [ChecklistItem]
     @State private var newItemText: String = ""
     @State private var editingItemId: UUID? = nil
+    @State private var showingSettings = false
     
     var body: some View {
         NavigationView {
@@ -90,7 +91,19 @@ struct ContentView: View {
             }
             .navigationTitle("Checklist")
             .toolbar {
-                EditButton()
+                ToolbarItem(placement: .navigationBarLeading) {
+                    EditButton()
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        showingSettings = true
+                    }) {
+                        Image(systemName: "gearshape")
+                    }
+                }
+            }
+            .sheet(isPresented: $showingSettings) {
+                SettingsView()
             }
         }
     }
@@ -123,6 +136,67 @@ struct ContentView: View {
         let startValue = reorderedItems.count - 1
         for (index, item) in reorderedItems.enumerated() {
             item.sortOrder = startValue - index
+        }
+    }
+}
+
+struct SettingsView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+    @Query private var items: [ChecklistItem]
+    @State private var showingResetAlert = false
+    
+    var body: some View {
+        NavigationView {
+            List {
+                Section(header: Text("About")) {
+                    HStack {
+                        Text("App Name")
+                        Spacer()
+                        Text("Checklist")
+                            .foregroundColor(.gray)
+                    }
+                    
+                    HStack {
+                        Text("Version")
+                        Spacer()
+                        Text("1.0.0-beta")
+                            .foregroundColor(.gray)
+                    }
+                }
+                
+                Section(header: Text("Data")) {
+                    Button(action: {
+                        showingResetAlert = true
+                    }) {
+                        Text("Reset App to Defaults")
+                            .foregroundColor(.red)
+                    }
+                }
+            }
+            .navigationTitle("Settings")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+            .alert("Reset App to Defaults", isPresented: $showingResetAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Reset", role: .destructive) {
+                    resetApp()
+                }
+            } message: {
+                Text("This will delete all checklist items. This action cannot be undone.")
+            }
+        }
+    }
+    
+    private func resetApp() {
+        for item in items {
+            modelContext.delete(item)
         }
     }
 }
