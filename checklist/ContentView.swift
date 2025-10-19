@@ -14,18 +14,20 @@ class ChecklistItem {
     var title: String
     var isCompleted: Bool
     var createdAt: Date
+    var sortOrder: Int
     
-    init(id: UUID = UUID(), title: String, isCompleted: Bool = false, createdAt: Date = Date()) {
+    init(id: UUID = UUID(), title: String, isCompleted: Bool = false, createdAt: Date = Date(), sortOrder: Int = 0) {
         self.id = id
         self.title = title
         self.isCompleted = isCompleted
         self.createdAt = createdAt
+        self.sortOrder = sortOrder
     }
 }
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query(sort: \ChecklistItem.createdAt, order: .reverse) private var items: [ChecklistItem]
+    @Query(sort: \ChecklistItem.sortOrder) private var items: [ChecklistItem]
     @State private var newItemText: String = ""
     @State private var editingItemId: UUID? = nil
     
@@ -82,6 +84,7 @@ struct ContentView: View {
                         }
                     }
                     .onDelete(perform: deleteItems)
+                    .onMove(perform: moveItems)
                 }
                 .listStyle(InsetListStyle())
             }
@@ -95,14 +98,44 @@ struct ContentView: View {
     private func addItem() {
         guard !newItemText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
         
-        let newItem = ChecklistItem(title: newItemText)
+        // Use timestamp to ensure unique sortOrder
+        let newSortOrder = Int(Date().timeIntervalSince1970 * 1000)
+        let newItem = ChecklistItem(title: newItemText, sortOrder: newSortOrder)
         modelContext.insert(newItem)
+        
+        do {
+            try modelContext.save()
+        } catch {
+            print("Error saving item: \(error)")
+        }
+        
         newItemText = ""
     }
     
     private func deleteItems(at offsets: IndexSet) {
         for index in offsets {
             modelContext.delete(items[index])
+        }
+    }
+    
+    private func moveItems(from source: IndexSet, to destination: Int) {
+        // Create a mutable copy of the items array
+        var reorderedItems = Array(items)
+        
+        // Perform the move
+        reorderedItems.move(fromOffsets: source, toOffset: destination)
+        
+        // Update sortOrder for all items based on their new positions using timestamps
+        var timestamp = Int(Date().timeIntervalSince1970 * 1000)
+        for item in reorderedItems {
+            item.sortOrder = timestamp
+            timestamp += 1
+        }
+        
+        do {
+            try modelContext.save()
+        } catch {
+            print("Error saving reordered items: \(error)")
         }
     }
 }
