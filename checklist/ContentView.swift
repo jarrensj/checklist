@@ -14,18 +14,20 @@ class ChecklistItem {
     var title: String
     var isCompleted: Bool
     var createdAt: Date
+    var sortOrder: Int
     
-    init(id: UUID = UUID(), title: String, isCompleted: Bool = false, createdAt: Date = Date()) {
+    init(id: UUID = UUID(), title: String, isCompleted: Bool = false, createdAt: Date = Date(), sortOrder: Int = 0) {
         self.id = id
         self.title = title
         self.isCompleted = isCompleted
         self.createdAt = createdAt
+        self.sortOrder = sortOrder
     }
 }
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query(sort: \ChecklistItem.createdAt, order: .reverse) private var items: [ChecklistItem]
+    @Query(sort: \ChecklistItem.sortOrder, order: .reverse) private var items: [ChecklistItem]
     @State private var newItemText: String = ""
     @State private var editingItemId: UUID? = nil
     
@@ -82,6 +84,7 @@ struct ContentView: View {
                         }
                     }
                     .onDelete(perform: deleteItems)
+                    .onMove(perform: moveItems)
                 }
                 .listStyle(InsetListStyle())
             }
@@ -95,7 +98,9 @@ struct ContentView: View {
     private func addItem() {
         guard !newItemText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
         
-        let newItem = ChecklistItem(title: newItemText)
+        // New items get the highest sortOrder value to appear at top
+        let maxOrder = items.map { $0.sortOrder }.max() ?? -1
+        let newItem = ChecklistItem(title: newItemText, sortOrder: maxOrder + 1)
         modelContext.insert(newItem)
         newItemText = ""
     }
@@ -103,6 +108,21 @@ struct ContentView: View {
     private func deleteItems(at offsets: IndexSet) {
         for index in offsets {
             modelContext.delete(items[index])
+        }
+    }
+    
+    private func moveItems(from source: IndexSet, to destination: Int) {
+        // Create a mutable copy of the items array
+        var reorderedItems = Array(items)
+        
+        // Perform the move
+        reorderedItems.move(fromOffsets: source, toOffset: destination)
+        
+        // Reassign sortOrder values in descending order
+        // First item gets highest value (appears at top with reverse sort)
+        let startValue = reorderedItems.count - 1
+        for (index, item) in reorderedItems.enumerated() {
+            item.sortOrder = startValue - index
         }
     }
 }
