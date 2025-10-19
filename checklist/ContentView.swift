@@ -142,6 +142,9 @@ struct ContentView: View {
 
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+    @Query private var items: [ChecklistItem]
+    @State private var showingResetAlert = false
     
     var body: some View {
         NavigationView {
@@ -161,6 +164,15 @@ struct SettingsView: View {
                             .foregroundColor(.gray)
                     }
                 }
+                
+                Section(header: Text("Data")) {
+                    Button(action: {
+                        showingResetAlert = true
+                    }) {
+                        Text("Reset App to Defaults")
+                            .foregroundColor(.red)
+                    }
+                }
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
@@ -171,6 +183,20 @@ struct SettingsView: View {
                     }
                 }
             }
+            .alert("Reset App to Defaults", isPresented: $showingResetAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Reset", role: .destructive) {
+                    resetApp()
+                }
+            } message: {
+                Text("This will delete all checklist items. This action cannot be undone.")
+            }
+        }
+    }
+    
+    private func resetApp() {
+        for item in items {
+            modelContext.delete(item)
         }
     }
 }
