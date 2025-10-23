@@ -31,6 +31,7 @@ struct ContentView: View {
     @State private var newItemText: String = ""
     @State private var editingItemId: UUID? = nil
     @State private var showingSettings = false
+    @State private var itemToDelete: ChecklistItem? = nil
     
     var body: some View {
         NavigationView {
@@ -82,18 +83,44 @@ struct ContentView: View {
                                         editingItemId = item.id
                                     }
                             }
+                            
+                            Spacer()
+                            
+                            // Drag handle
+                            Image(systemName: "line.3.horizontal")
+                                .foregroundColor(.gray)
+                                .font(.body)
                         }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            if itemToDelete == item {
+                                Button(role: .destructive) {
+                                    deleteItem(item)
+                                } label: {
+                                    Label("Confirm Delete", systemImage: "checkmark")
+                                }
+                            } else {
+                                Button(role: .destructive) {
+                                    itemToDelete = item
+                                    // Reset after a delay if not confirmed
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                                        if itemToDelete == item {
+                                            itemToDelete = nil
+                                        }
+                                    }
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
+                        }
+                        .deleteDisabled(true)
                     }
-                    .onDelete(perform: deleteItems)
                     .onMove(perform: moveItems)
                 }
                 .listStyle(InsetListStyle())
+                .environment(\.editMode, .constant(.active))
             }
             .navigationTitle("Checklist")
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    EditButton()
-                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: {
                         showingSettings = true
@@ -118,10 +145,9 @@ struct ContentView: View {
         newItemText = ""
     }
     
-    private func deleteItems(at offsets: IndexSet) {
-        for index in offsets {
-            modelContext.delete(items[index])
-        }
+    private func deleteItem(_ item: ChecklistItem) {
+        modelContext.delete(item)
+        itemToDelete = nil
     }
     
     private func moveItems(from source: IndexSet, to destination: Int) {
