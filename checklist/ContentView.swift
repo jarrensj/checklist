@@ -32,6 +32,10 @@ struct ContentView: View {
     @State private var editingItemId: UUID? = nil
     @State private var showingSettings = false
     
+    var completedItems: [ChecklistItem] {
+        items.filter { $0.isCompleted }
+    }
+    
     var body: some View {
         NavigationView {
             VStack {
@@ -95,10 +99,17 @@ struct ContentView: View {
                     EditButton()
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        showingSettings = true
-                    }) {
-                        Image(systemName: "gearshape")
+                    HStack {
+                        Button(action: deleteCompletedItems) {
+                            Image(systemName: "trash")
+                        }
+                        .disabled(completedItems.isEmpty)
+                        
+                        Button(action: {
+                            showingSettings = true
+                        }) {
+                            Image(systemName: "gearshape")
+                        }
                     }
                 }
             }
@@ -136,6 +147,13 @@ struct ContentView: View {
         let startValue = reorderedItems.count - 1
         for (index, item) in reorderedItems.enumerated() {
             item.sortOrder = startValue - index
+        }
+    }
+    
+    private func deleteCompletedItems() {
+        let completed = completedItems
+        for item in completed {
+            modelContext.delete(item)
         }
     }
 }
